@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lembar Kerja PM Alat Medis</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#eef2f5;color:#17202a}
+.app{max-width:1100px;margin:auto;background:#fff;min-height:100vh}
+.toolbar{position:sticky;top:0;z-index:10;background:#174f78;padding:9px;display:flex;gap:7px;flex-wrap:wrap}
+.toolbar button{border:0;border-radius:7px;padding:10px 14px;font-weight:700;cursor:pointer;background:#fff;color:#174f78}
+.toolbar button.primary{background:#198754;color:#fff}
+.toolbar-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:100%;padding:9px;background:#174f78;margin:0}
+.toolbar-total{border-radius:7px;padding:7px 8px;text-align:center;font-size:12px;font-weight:700;border:1px solid #d0d5d9;line-height:1.25}
+.toolbar-total b{display:block;font-size:17px;margin-top:3px}
+.toolbar-total.all{background:#fff;color:#174f78}
+.toolbar-total.good{background:#198754;color:#fff;border-color:#198754}
+.toolbar-total.repair{background:#ffdf70;color:#4c3900;border-color:#e9c34d}
+.toolbar-total.broken{background:#dc3545;color:#fff;border-color:#dc3545}
+.search-panel{display:none;background:#eef4f8;padding:12px 16px;border-bottom:1px solid #c8d4dc}
+.search-panel h3{margin:0 0 8px;color:#174f78;font-size:17px}
+.search-controls{display:flex;gap:8px;align-items:stretch}
+.search-controls input{min-width:0;flex:1;padding:10px}
+.search-controls button{border:0;border-radius:7px;padding:9px 12px;font-weight:700;background:#174f78;color:#fff}
+.search-results button{font:inherit}
+.sheet{padding:20px}
+.title{text-align:center;border-bottom:2px solid #222;padding-bottom:10px;margin-bottom:18px}
+.title h1{font-size:22px;margin:0 0 4px}.title p{margin:0;font-size:13px}
+.info{width:100%;border-collapse:collapse;margin-bottom:15px}
+.info td{border:1px solid #555;padding:6px 8px}
+.info td:first-child{width:34%;font-weight:700;background:#f3f3f3}
+input,select{width:100%;font:inherit;padding:6px;border:1px solid #aaa;border-radius:5px;background:#fff}
+.stats{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 12px}
+.stat{border:1px solid #ddd;border-radius:7px;padding:7px 10px;font-size:12px;background:#fafafa}
+.note{font-size:12px;color:#5d6870;margin-bottom:10px}
+.sheet-row-action{display:flex;justify-content:flex-end;gap:6px;margin:8px 0!important}
+.sheet-row-action button{font:inherit;font-size:12px;font-weight:700;padding:5px 10px;border:1px solid #174f78;border-radius:5px;background:#fff;color:#174f78;cursor:pointer}
+.sheet-row-action button.add-pm{background:#174f78;color:#fff}
+.sheet-row-action button.remove-pm{background:#fff;color:#9b1c1c;border-color:#b42318}
+.tablewrap{overflow-x:auto}
+.pm{width:100%;border-collapse:collapse;table-layout:fixed}
+.pm th,.pm td{border:1px solid #555;padding:5px;font-size:12px;word-break:break-word}
+.pm th{background:#eee;text-align:center}
+.pm th:nth-child(1),.pm td:nth-child(1){width:16%}
+.pm th:nth-child(2),.pm td:nth-child(2){width:40%}
+.pm th:nth-child(3),.pm td:nth-child(3){width:22%}
+.pm th:nth-child(4),.pm td:nth-child(4){width:22%}
+.pm input,.pm select{border:0;padding:3px;background:transparent}
+.signature{display:flex;justify-content:flex-end;margin-top:25px}
+.sigbox{text-align:center;width:300px}.siglabel{margin-top:8px;font-weight:700}.sigttd{height:58px;display:flex;align-items:flex-end;justify-content:center;font-size:12px;font-weight:700}.signame{font-weight:700;margin-top:5px}
+.modal{display:none;position:fixed;inset:0;background:#0008;z-index:100;align-items:center;justify-content:center;padding:15px}
+.modal.show{display:flex}.card{background:#fff;border-radius:12px;padding:18px;text-align:center;width:min(390px,94vw)}
+.card h3{margin:0 0 12px;color:#174f78}.card img{width:270px;height:270px;max-width:75vw}
+.card button{border:0;border-radius:7px;padding:9px 14px;margin:8px 4px;font-weight:700;cursor:pointer}
+.close{background:#eee}.download{background:#198754;color:#fff}
+@media(max-width:700px){
+ .sheet{padding:10px}.title h1{font-size:17px}.title p{font-size:11px}
+ .toolbar{position:static}.toolbar button{flex:1 1 45%;font-size:11px;padding:9px 6px}
+ .toolbar-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar-total{font-size:11px;padding:6px 4px}.toolbar-total b{font-size:16px}
+ .info td{font-size:12px;padding:5px}.info td:first-child{width:34%}
+ .pm th,.pm td{font-size:10px;padding:4px}.pm input,.pm select{font-size:10px}
+ .signature{margin-top:18px}.sigbox{width:240px;font-size:11px}
+}
+@media print{
+ body{background:#fff}.toolbar,.no-print{display:none!important}.app{max-width:none}
+ .sheet{padding:0}.info input,.info select,.pm input,.pm select{border:0}
+ .pm th,.pm td{font-size:8pt;padding:1.5mm}
+ @page{size:215mm 330mm portrait;margin:10mm}
+}
+
+.login-overlay{position:fixed;inset:0;background:#eef2f5;z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}
+.login-card{width:min(360px,100%);background:#fff;border-radius:14px;padding:26px 22px;box-shadow:0 12px 36px #1233;text-align:center}
+.login-card h2{color:#174f78;margin:0 0 6px}.login-card p{color:#5d6870;font-size:13px;margin:0 0 18px}
+.login-card label{display:block;text-align:left;font-size:13px;font-weight:700;margin:12px 0 5px}
+.login-card input{padding:11px;width:100%;border:1px solid #aab6bf;border-radius:7px;font-size:16px}
+.login-card button{width:100%;margin-top:16px;padding:11px;border:0;border-radius:7px;background:#174f78;color:white;font-weight:700;font-size:15px;cursor:pointer}
+.login-error{display:none;color:#b42318;font-size:12px;margin-top:10px}
+#logoutBtn{margin-left:auto;background:#ffe8e8!important;color:#9b1c1c!important}
+
+</style>
+</head>
+<body>
+<div class="app">
+<div class="login-overlay no-print" id="loginOverlay">
+  <form class="login-card" onsubmit="return doLogin(event)">
+    <h2>LOGIN ADMIN</h2>
+    <p>Aplikasi Lembar Kerja Preventive Maintenance Alat Medis</p>
+    <label for="loginUser">Username</label>
+    <input id="loginUser" autocomplete="username" required placeholder="Masukkan username">
+    <label for="loginPass">Password</label>
+    <input id="loginPass" type="password" inputmode="numeric" autocomplete="current-password" required placeholder="Masukkan password">
+    <button type="submit">LOGIN</button>
+    <div class="login-error" id="loginError">Username atau password salah.</div>
+  </form>
+</div>
+<div class="toolbar-summary no-print" id="toolbarSummary" aria-label="Ringkasan kondisi seluruh alat" style="display:none">
+  <div class="toolbar-total all">Total Alat<b id="toolbarTotalAlat">0</b></div>
+  <div class="toolbar-total good">Total Alat Baik<b id="toolbarTotalBaik">0</b></div>
+  <div class="toolbar-total repair">Total Alat Dalam Perbaikan<b id="toolbarTotalPerbaikan">0</b></div>
+  <div class="toolbar-total broken">Total Alat Rusak Berat<b id="toolbarTotalRusak">0</b></div>
+</div>
+<div class="toolbar no-print" id="mainToolbar" style="display:none">
+ <button class="primary" onclick="showQR()">QR</button>
+ <button onclick="window.print()">Cetak / PDF F4</button>
+ <button onclick="saveData()">Simpan</button>
+ <button onclick="newWorksheet()">Lembar Kerja Baru</button>
+ <button onclick="toggleSearchPM()">Cari / Edit Alat</button>
+ <button onclick="exportEquipmentCSV()">Ekspor CSV</button>
+ <button id="logoutBtn" onclick="logout()">Keluar</button>
+</div>
+<div id="searchBar" class="search-panel no-print">
+ <h3>Cari Data Alat untuk Diedit</h3>
+ <div class="search-controls">
+  <input id="searchTool" type="search" placeholder="Nama alat / merek / type / SN / lokasi" oninput="searchPM()" aria-label="Cari data alat">
+  <button type="button" onclick="searchPM()">Cari</button>
+  <button type="button" onclick="clearSearchPM()" style="background:#fff;color:#174f78;border:1px solid #9aabb7">Reset</button>
+ </div>
+ <div id="searchResults" class="search-results" style="margin-top:8px"></div>
+</div>
+
+<div class="sheet">
+<div class="title">
+<h1>LEMBAR KERJA PREVENTIVE MAINTENANCE (PM)</h1>
+<p>ALAT MEDIS</p>
+</div>
+
+<table class="info">
+<tr><td>Nama Alat</td><td><input id="nama" value="EKG"></td></tr>
+<tr><td>Merk</td><td><input id="merk" value="ZONCARE"></td></tr>
+<tr><td>Type</td><td><input id="type" value="ZQ 1212"></td></tr>
+<tr><td>No. Seri</td><td><input id="seri" value="L011180104200N0012"></td></tr>
+<tr><td>Masa Berlaku Kalibrasi</td><td><input id="kalibrasi" type="date" value="2027-11-07"></td></tr>
+<tr><td>Lokasi Alat</td><td><input id="lokasi" value="IMED DEWASA CVCBC"></td></tr>
+</table>
+
+<div class="stats">
+<div class="stat">Total PM: <b id="total">0</b></div>
+<div class="stat">Baik: <b id="baik">0</b></div>
+<div class="stat">Dalam Perbaikan: <b id="perbaikan">0</b></div>
+<div class="stat">Rusak Berat: <b id="rusak">0</b></div>
+</div>
+
+<div class="note">Setiap baris dapat diedit. <b>Kegiatan PM otomatis terisi “Pengecekan fungsi alat”</b> dan selalu ditampilkan.</div>
+
+<div class="sheet-row-action no-print">
+ <button type="button" class="add-pm" onclick="addRow()">+ PM</button>
+ <button type="button" class="remove-pm" onclick="removeRow()">− PM</button>
+</div>
+<div class="tablewrap">
+<table class="pm" id="pmTable">
+<thead><tr><th>Hari/Tanggal</th><th>Kegiatan PM (Opsional)</th><th>Hasil / Kondisi</th><th>Elektromedis</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+
+<div class="signature">
+<div class="sigbox">
+<div class="siglabel">Teknisi Elektromedis</div>
+<div class="sigttd">TTD</div>
+<div class="signame">Fanny Jhosep</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="modal" id="qrModal">
+<div class="card">
+<h3>QR OTOMATIS - DATA PM</h3>
+<div id="qrIdentity" style="font-size:13px;line-height:1.5;margin:0 auto 8px;max-width:340px;text-align:left;color:#263746"></div>
+<div id="qrBox"></div>
+<div>
+<button class="download" onclick="downloadQR()">Download QR</button>
+<button class="download" onclick="showPDF()">Tampilkan PDF</button>
+<button class="close" onclick="closeQR()">Tutup</button>
+</div>
+<div style="font-size:11px;color:#68737a">Alur: edit data → tekan Simpan → tekan QR → Download QR. QR yang baru berisi data terbaru. Jika data berubah, cetak QR baru dan ganti QR lama yang ditempel pada alat. Jika aplikasi dibuka dari hosting, QR dapat membuka tampilan data alat dan riwayat PM yang bisa dicetak / disimpan sebagai PDF.</div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const sample=Array.from({length:12}, (_, i) => {
+  const year = new Date().getFullYear();
+  const month = String(i + 1).padStart(2, "0");
+  return [`${year}-${month}-01`, "Pengecekan fungsi alat", "Baik", "FANNY"];
+});
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+function rowHTML(r=[new Date().toISOString().slice(0,10),"Pengecekan fungsi alat","Baik","FANNY"]){
+const pmActivity=(r[1]||"Pengecekan fungsi alat");
+return `<tr>
+<td><input type="date" value="${esc(r[0])}"></td>
+<td><input value="${esc(pmActivity)}" placeholder="Pengecekan fungsi alat" onblur="if(!this.value.trim())this.value='Pengecekan fungsi alat'"></td>
+<td><select><option ${r[2]=="Baik"?"selected":""}>Baik</option><option ${r[2]=="Dalam Perbaikan"?"selected":""}>Dalam Perbaikan</option><option ${r[2]=="Rusak Berat"?"selected":""}>Rusak Berat</option></select></td>
+<td><input value="${esc(r[3]||"FANNY")}"></td>
+</tr>`;
+}
+function render(rows){document.querySelector("#pmTable tbody").innerHTML=rows.map(rowHTML).join("");updateStats();}
+function getRows(){return [...document.querySelectorAll("#pmTable tbody tr")].map(tr=>[
+tr.children[0].querySelector("input").value,
+(tr.children[1].querySelector("input").value.trim()||"Pengecekan fungsi alat"),
+tr.children[2].querySelector("select").value,
+tr.children[3].querySelector("input").value
+]);}
+function addRow(){document.querySelector("#pmTable tbody").insertAdjacentHTML("beforeend",rowHTML([new Date().toISOString().slice(0,10),"Pengecekan fungsi alat","Baik","FANNY"]));updateStats();}
+function removeRow(){const body=document.querySelector("#pmTable tbody");if(body.rows.length<=1){alert("Minimal harus ada 1 baris PM.");return;}body.deleteRow(body.rows.length-1);updateStats();}
+function todayRow(){addRow();let r=document.querySelectorAll("#pmTable tbody tr");r[r.length-1].children[0].querySelector("input").value=new Date().toISOString().slice(0,10);}
+function updateStats(){let c={"Baik":0,"Dalam Perbaikan":0,"Rusak Berat":0},rows=getRows();rows.forEach(r=>c[r[2]]++);total.textContent=rows.length;baik.textContent=c["Baik"];perbaikan.textContent=c["Dalam Perbaikan"];rusak.textContent=c["Rusak Berat"];}
+function updateToolbarEquipmentStats(){
+  let db=[];
+  try{db=JSON.parse(localStorage.getItem("PM_MEDIS_DATABASE")||"[]");if(!Array.isArray(db))db=[];}catch(e){db=[];}
+  const current=data();
+  const hasIdentity=d=>[d.nama_alat||d.nama,d.merek||d.merk,d.tipe||d.type,d.no_seri||d.sn||d.seri,d.lokasi].some(v=>String(v||"").trim());
+  const keyOf=d=>String(d.no_seri||d.sn||d.seri||"").trim().toLowerCase()||[d.nama_alat||d.nama,d.merek||d.merk,d.tipe||d.type,d.lokasi].map(v=>String(v||"").trim().toLowerCase()).join("|");
+  const records=new Map();
+  db.filter(hasIdentity).forEach(d=>records.set(keyOf(d),d));
+  if(hasIdentity(current))records.set(keyOf(current),current);
+  const counts={total:records.size,baik:0,perbaikan:0,rusak:0};
+  records.forEach(d=>{
+    const rows=Array.isArray(d.pm)?d.pm:[];
+    const dated=rows.filter(r=>r&&r[2]).slice().sort((a,b)=>String(b[0]||"").localeCompare(String(a[0]||"")));
+    const status=dated.length?dated[0][2]:"Baik";
+    if(status==="Dalam Perbaikan")counts.perbaikan++;
+    else if(status==="Rusak Berat")counts.rusak++;
+    else counts.baik++;
+  });
+  const put=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  put("toolbarTotalAlat",counts.total);put("toolbarTotalBaik",counts.baik);put("toolbarTotalPerbaikan",counts.perbaikan);put("toolbarTotalRusak",counts.rusak);
+}
+function data(){
+  const namaAlat=(document.getElementById("nama")?.value||"").trim();
+  const merek=(document.getElementById("merk")?.value||"").trim();
+  const tipe=(document.getElementById("type")?.value||"").trim();
+  const nomorSeri=(document.getElementById("seri")?.value||"").trim();
+  const rows=getRows();
+  return {
+    aplikasi:"Lembar Kerja Preventive Maintenance Alat Medis",
+    nama:namaAlat, nama_alat:namaAlat,
+    merk:merek, merek:merek,
+    type:tipe, tipe:tipe,
+    seri:nomorSeri, sn:nomorSeri, no_seri:nomorSeri,
+    kalibrasi:(document.getElementById("kalibrasi")?.value||"").trim(),
+    lokasi:(document.getElementById("lokasi")?.value||"").trim(),
+    teknisi:"FANNY JOSEPH",
+    pm:rows
+  };
+}
+function textPayload(d){
+  const clean=v=>String(v||"-").replace(/[|;~\r\n]/g," ").trim()||"-";
+  const lines=["DATA ALAT MEDIS", "Nama="+clean(d.nama_alat), "Merek="+clean(d.merek), "Type="+clean(d.tipe), "SN="+clean(d.no_seri), "Lokasi="+clean(d.lokasi), "Masa Berlaku Kalibrasi="+clean(d.kalibrasi), "RIWAYAT PM (Tanggal | Kegiatan | Kondisi | Elektromedis)"];
+  (d.pm||[]).forEach((r,i)=>lines.push((i+1)+". "+[clean(r[0]),clean(r[1]),clean(r[2]),clean(r[3]||"FANNY")].join(" | ")));
+  return lines.join("\n");
+}
+function encodeBase64Unicode(str){return btoa(unescape(encodeURIComponent(str)));}
+function makePDFHTML(d){
+  const escPDF=v=>esc(v||"-");
+  const dateFmt=v=>{if(!v)return "-";const p=v.split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:v;};
+  const rows=(d.pm||[]).map((r,i)=>`<tr><td>${i+1}</td><td>${escPDF(dateFmt(r[0]))}</td><td>${escPDF(r[1])}</td><td>${escPDF(r[2])}</td><td>${escPDF(r[3]||"FANNY")}</td></tr>`).join("");
+  return `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Data Alat & Riwayat PM</title><style>body{font-family:Arial,sans-serif;color:#111;margin:20px;line-height:1.35}h2{text-align:center;font-size:18px;margin:0 0 4px}.sub{text-align:center;margin:0 0 18px;font-size:12px}table{width:100%;border-collapse:collapse;table-layout:fixed;margin:10px 0 18px}td,th{border:1px solid #444;padding:6px;font-size:10.5px;text-align:left;vertical-align:middle;overflow-wrap:break-word;word-break:normal}th{background:#eee;font-weight:700}.ident td:first-child{width:34%;font-weight:bold;background:#f4f4f4}.ident td{font-size:11px}.pm th:nth-child(1),.pm td:nth-child(1){width:7%;text-align:center}.pm th:nth-child(2),.pm td:nth-child(2){width:17%}.pm th:nth-child(3),.pm td:nth-child(3){width:32%}.pm th:nth-child(4),.pm td:nth-child(4){width:20%}.pm th:nth-child(5),.pm td:nth-child(5){width:24%}.pm td:nth-child(2){white-space:nowrap;font-size:10px}.actions{text-align:center;margin:15px}.actions button{padding:10px 16px;font-weight:bold}.signature{display:flex;justify-content:flex-end;margin-top:24px;page-break-inside:avoid;break-inside:avoid}.sigbox{text-align:center;width:220px}.siglabel{font-weight:700}.sigttd{height:58px;display:flex;align-items:flex-end;justify-content:center;font-size:12px;font-weight:700}.signame{font-weight:700;margin-top:5px}@page{size:A4 portrait;margin:12mm}@media(max-width:600px){body{margin:12px}td,th{padding:5px;font-size:10px}.pm td:nth-child(2){font-size:9px}}@media print{.actions{display:none}body{margin:0}}</style></head><body><h2>DATA ALAT MEDIS</h2><p class="sub">LEMBAR KERJA PREVENTIVE MAINTENANCE (PM)</p><table class="ident"><tr><td>Nama Alat</td><td>${escPDF(d.nama_alat||d.nama)}</td></tr><tr><td>Merek</td><td>${escPDF(d.merek||d.merk)}</td></tr><tr><td>Type</td><td>${escPDF(d.tipe||d.type)}</td></tr><tr><td>No. Seri (SN)</td><td>${escPDF(d.no_seri||d.sn||d.seri)}</td></tr><tr><td>Lokasi / Ruangan</td><td>${escPDF(d.lokasi)}</td></tr><tr><td>Masa Berlaku Kalibrasi</td><td>${escPDF(dateFmt(d.kalibrasi))}</td></tr></table><h3>Riwayat PM</h3><table class="pm"><thead><tr><th>No.</th><th>Tanggal</th><th>Kegiatan PM</th><th>Hasil / Kondisi</th><th>Elektromedis</th></tr></thead><tbody>${rows||'<tr><td colspan="5">Belum ada riwayat PM</td></tr>'}</tbody></table><div class="signature"><div class="sigbox"><div class="siglabel">Teknisi Elektromedis</div><div class="sigttd">TTD</div><div class="signame">Fanny Jhosep</div></div></div><div class="actions"><button onclick="window.print()">Cetak / Simpan PDF</button></div></body></html>`;
+}
+function showPDF(){
+  const d=data();
+  const w=window.open("", "_blank");
+  if(!w){alert("Izinkan pop-up pada browser untuk menampilkan PDF.");return;}
+  w.document.open();w.document.write(makePDFHTML(d));w.document.close();
+}
+function unpackQRData(raw){
+  // Mendukung format QR lama dan format ringkas agar kode QR tidak terlalu padat.
+  if(raw && raw.v===1 && raw.d){
+    const x=raw.d;
+    return {aplikasi:"Lembar Kerja Preventive Maintenance Alat Medis",nama:x.n||"",nama_alat:x.n||"",merk:x.m||"",merek:x.m||"",type:x.t||"",tipe:x.t||"",seri:x.s||"",sn:x.s||"",no_seri:x.s||"",kalibrasi:x.k||"",lokasi:x.l||"",teknisi:"FANNY JOSEPH",pm:Array.isArray(x.p)?x.p:[]};
+  }
+  return raw;
+}
+function openQRPDFFromHash(){
+  const m=location.hash.match(/(?:^#|&)pdfdata=([^&]+)/);
+  if(!m)return false;
+  try{
+    const decoded=decodeURIComponent(escape(atob(decodeURIComponent(m[1]))));
+    const d=unpackQRData(JSON.parse(decoded));
+    document.body.innerHTML=makePDFHTML(d);
+    document.title="Data Alat dan Riwayat PM";
+    return true;
+  }catch(e){return false;}
+}
+function showQR(){
+  const d=data();
+  const escQR=s=>String(s||"-").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  document.getElementById("qrIdentity").innerHTML="<b>Nama Alat:</b> "+escQR(d.nama_alat)+"<br><b>Merek:</b> "+escQR(d.merek)+"<br><b>Type:</b> "+escQR(d.tipe)+"<br><b>SN:</b> "+escQR(d.no_seri)+"<br><b>Lokasi Alat:</b> "+escQR(d.lokasi);
+  const box=document.getElementById("qrBox");
+  box.innerHTML='<div id="qrCanvasArea" style="display:flex;justify-content:center;min-height:220px;align-items:center"></div><p id="qrError" style="display:none;color:#b42318;font-size:13px">QR belum dapat dibuat. Periksa koneksi internet dan coba lagi.</p>';
+  document.getElementById("qrModal").classList.add("show");
+  const payload=qrURLPayload(d);
+  const area=document.getElementById("qrCanvasArea");
+  if(typeof QRCode !== "undefined"){
+    try{
+      new QRCode(area,{text:payload,width:260,height:260,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+      return;
+    }catch(e){}
+  }
+  // Fallback melalui layanan QR daring bila pustaka QR tidak dapat dimuat.
+  const img=document.createElement('img');img.id='qrImg';img.alt='QR PM';img.style.cssText='width:min(300px,75vw);height:auto;display:block;margin:0 auto;image-rendering:pixelated';
+  const urls=[
+    'https://api.qrserver.com/v1/create-qr-code/?size=700x700&margin=8&ecc=M&data='+encodeURIComponent(payload),
+    'https://quickchart.io/qr?size=700&margin=2&text='+encodeURIComponent(payload)
+  ];
+  let attempt=0;
+  img.onerror=()=>{attempt++;if(attempt<urls.length){img.src=urls[attempt];}else{document.getElementById('qrError').style.display='block';}};
+  img.src=urls[0];area.appendChild(img);
+}
+function qrURLPayload(d){
+  let payload=textPayload(d);
+  if(/^https?:$/.test(location.protocol)){
+    const base=location.href.split('#')[0];
+    // Gunakan kunci ringkas supaya QR lebih mudah dipindai; semua data dan riwayat PM tetap disertakan.
+    const compact={v:1,d:{n:d.nama_alat||d.nama||"",m:d.merek||d.merk||"",t:d.tipe||d.type||"",s:d.no_seri||d.sn||d.seri||"",k:d.kalibrasi||"",l:d.lokasi||"",p:Array.isArray(d.pm)?d.pm:[]}};
+    payload=base+'#pdfdata='+encodeURIComponent(encodeBase64Unicode(JSON.stringify(compact)));
+  }
+  return payload;
+}
+function closeQR(){document.getElementById("qrModal").classList.remove("show");}
+function downloadQR(){
+  const box=document.getElementById('qrBox');
+  const canvas=box?box.querySelector('canvas'):null;
+  const img=box?box.querySelector('img'):null;
+  const filename='QR_PM_'+((document.getElementById('seri').value||'alat').replace(/[^a-z0-9_-]/gi,'_'))+'.png';
+  if(canvas){
+    const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download=filename;document.body.appendChild(a);a.click();a.remove();return;
+  }
+  if(img&&img.complete&&img.naturalWidth){
+    const a=document.createElement('a');a.href=img.src;a.download=filename;a.target='_blank';document.body.appendChild(a);a.click();a.remove();return;
+  }
+  alert('QR belum siap. Tunggu sampai QR tampil, lalu tekan Download QR.');
+}
+function newWorksheet(){
+  const saveCurrent=confirm("Simpan lembar kerja yang sedang dibuka sebelum membuat lembar kerja baru? Tekan Batal untuk membatalkan.");
+  if(saveCurrent){saveData();}
+  else if(!confirm("Lanjut membuat lembar kerja baru tanpa menyimpan perubahan terakhir? Data yang sudah tersimpan tetap dipertahankan.")){return;}
+  currentEditingKey=null;
+  document.getElementById("nama").value="";
+  document.getElementById("merk").value="";
+  document.getElementById("type").value="";
+  document.getElementById("seri").value="";
+  document.getElementById("kalibrasi").value="";
+  document.getElementById("lokasi").value="";
+  // Lembar kerja baru selalu menyiapkan 12 baris PM: satu baris untuk setiap bulan dalam tahun berjalan.
+  const year = new Date().getFullYear();
+  const monthlyRows = Array.from({length:12}, (_, i) => {
+    const month = String(i + 1).padStart(2, "0");
+    return [`${year}-${month}-01`, "Pengecekan fungsi alat", "Baik", "FANNY"];
+  });
+  render(monthlyRows);
+  window.scrollTo({top:0,behavior:"smooth"});
+  alert(`Lembar kerja baru siap diisi untuk tahun ${year}, dengan 12 baris PM (Januari–Desember), satu baris setiap bulan. Kegiatan PM otomatis terisi “Pengecekan fungsi alat”. Sesuaikan tanggal pemeriksaan, lalu tekan Simpan.`);
+}
+let currentEditingKey = null;
+function recordKey(x){
+  return String(x.no_seri||x.sn||x.seri||"").trim().toLowerCase() ||
+    [x.nama_alat||x.nama,x.merek||x.merk,x.tipe||x.type,x.lokasi].map(v=>String(v||"").trim().toLowerCase()).join("|");
+}
+function saveData(){
+  const d=data();
+  localStorage.setItem("PM_MEDIS",JSON.stringify(d));
+  let db=[];
+  try{db=JSON.parse(localStorage.getItem("PM_MEDIS_DATABASE")||"[]");if(!Array.isArray(db))db=[];}catch(e){db=[];}
+  // Jika sedang mengedit data lama, perbarui rekaman lama meskipun nomor seri/identitas berubah.
+  const key=recordKey(d);
+  let idx=currentEditingKey ? db.findIndex(x=>recordKey(x)===currentEditingKey) : -1;
+  if(idx<0) idx=db.findIndex(x=>recordKey(x)===key);
+  if(idx>=0) db[idx]=d; else db.push(d);
+  currentEditingKey=key;
+  localStorage.setItem("PM_MEDIS_DATABASE",JSON.stringify(db));
+  updateToolbarEquipmentStats();
+  alert("Data PM tersimpan. Jika ingin QR terbaru, tekan tombol QR lalu Download QR. Ganti QR lama yang ditempel dengan QR baru.");
+}
+
+function exportEquipmentCSV(){
+  let db=[];
+  try{db=JSON.parse(localStorage.getItem("PM_MEDIS_DATABASE")||"[]");if(!Array.isArray(db))db=[];}catch(e){db=[];}
+  const current=data();
+  const hasIdentity=d=>[d.nama_alat||d.nama,d.merek||d.merk,d.tipe||d.type,d.no_seri||d.sn||d.seri,d.lokasi].some(v=>String(v||"").trim());
+  const keyOf=d=>String(d.no_seri||d.sn||d.seri||"").trim().toLowerCase()||[d.nama_alat||d.nama,d.merek||d.merk,d.tipe||d.type,d.lokasi].map(v=>String(v||"").trim().toLowerCase()).join("|");
+  const records=new Map();
+  db.filter(hasIdentity).forEach(d=>records.set(keyOf(d),d));
+  if(hasIdentity(current))records.set(keyOf(current),current);
+  const csvCell=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const rows=[['Tahun','Nama alat','Merek','Tipe','SN','Lokasi','Kondisi alat']];
+  records.forEach(d=>{
+    const pm=Array.isArray(d.pm)?d.pm:[];
+    const dated=pm.filter(r=>r&&r[0]).slice().sort((a,b)=>String(b[0]).localeCompare(String(a[0])));
+    const latest=dated[0]||[];
+    const dateText=String(latest[0]||'');
+    const year=(dateText.match(/^\d{4}/)||[])[0]||String(new Date().getFullYear());
+    const condition=String(latest[2]||'Baik');
+    rows.push([year,d.nama_alat||d.nama||'',d.merek||d.merk||'',d.tipe||d.type||'',d.no_seri||d.sn||d.seri||'',d.lokasi||'',condition]);
+  });
+  if(rows.length===1){alert('Belum ada data alat tersimpan untuk diekspor. Isi identitas alat lalu tekan Simpan.');return;}
+  const csv='\ufeff'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='Data_Alat_Medis_'+new Date().getFullYear()+'.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+
+function toggleSearchPM(){
+  const bar=document.getElementById("searchBar");
+  bar.style.display=bar.style.display==="none"?"block":"none";
+  if(bar.style.display==="block"){document.getElementById("searchTool").focus();searchPM();}
+}
+let pmSearchMatches=[];
+function searchPM(){
+  const q=(document.getElementById("searchTool").value||"").trim().toLowerCase();
+  const out=document.getElementById("searchResults");
+  let db=[];
+  try{db=JSON.parse(localStorage.getItem("PM_MEDIS_DATABASE")||"[]");if(!Array.isArray(db))db=[];}catch(e){db=[];}
+  const current=data();
+  const all=[current,...db];
+  const seen=new Set();
+  pmSearchMatches=all.filter(d=>{
+    const sn=String(d.no_seri||d.sn||d.seri||"").trim().toLowerCase();
+    const key=sn||[d.nama_alat||d.nama,d.merek||d.merk,d.tipe||d.type,d.lokasi].join("|").toLowerCase();
+    if(seen.has(key))return false;
+    seen.add(key);
+    const hay=[d.nama_alat,d.nama,d.merek,d.merk,d.tipe,d.type,d.no_seri,d.sn,d.seri,d.lokasi].join(" ").toLowerCase();
+    return !q||hay.includes(q);
+  });
+  if(!pmSearchMatches.length){out.innerHTML='<div style="padding:8px;color:#a12626">Data tidak ditemukan. Simpan data alat terlebih dahulu pada perangkat ini.</div>';return;}
+  out.innerHTML=pmSearchMatches.map((d,i)=>'<button type="button" data-pm-index="'+i+'" style="display:block;width:100%;text-align:left;margin:5px 0;padding:10px;border:1px solid #c7d5df;border-radius:7px;background:white;color:#243746;cursor:pointer">'+esc(d.nama_alat||d.nama||'Tanpa nama')+' — '+esc(d.merek||d.merk||'-')+' / '+esc(d.tipe||d.type||'-')+' / SN: '+esc(d.no_seri||d.sn||d.seri||'-')+' / '+esc(d.lokasi||'-')+'</button>').join('');
+  out.querySelectorAll('button[data-pm-index]').forEach(btn=>btn.addEventListener('click',()=>loadPMRecordByIndex(Number(btn.dataset.pmIndex))));
+}
+function loadPMRecordByIndex(index){
+  const d=pmSearchMatches[index];
+  if(!d){alert('Data alat tidak dapat dibuka. Silakan cari kembali.');return;}
+  loadPMRecord(encodeURIComponent(JSON.stringify(d)));
+}
+function loadPMRecord(encoded){
+  let d;
+  try{d=JSON.parse(decodeURIComponent(encoded));}catch(e){alert('Data tidak dapat dibuka.');return;}
+  currentEditingKey=recordKey(d);
+  document.getElementById('nama').value=d.nama_alat||d.nama||'';
+  document.getElementById('merk').value=d.merek||d.merk||'';
+  document.getElementById('type').value=d.tipe||d.type||'';
+  document.getElementById('seri').value=d.no_seri||d.sn||d.seri||'';
+  document.getElementById('kalibrasi').value=d.kalibrasi||'';
+  document.getElementById('lokasi').value=d.lokasi||'';
+  render(Array.isArray(d.pm)?d.pm:[]);
+  updateStats();
+  updateToolbarEquipmentStats();
+  document.getElementById('searchResults').innerHTML='<div style="padding:8px;color:#17663a;font-weight:700">Data alat berhasil dimuat. Edit bila perlu, lalu tekan Simpan.</div>';
+  const sheet=document.querySelector('.sheet');
+  sheet.scrollIntoView({behavior:'smooth',block:'start'});
+  sheet.style.transition='outline 0.3s';sheet.style.outline='3px solid #198754';
+  setTimeout(()=>{sheet.style.outline='';},1800);
+}
+function clearSearchPM(){document.getElementById('searchTool').value='';searchPM();}
+document.addEventListener("input",updateStats);
+document.addEventListener("change",updateStats);
+document.addEventListener("change",updateToolbarEquipmentStats);
+// Gunakan tahun berjalan untuk tanggal contoh agar tabel mengikuti periode kalender saat aplikasi dibuka.
+const currentYear = new Date().getFullYear();
+const currentMonth = new Date().getMonth();
+const normalizedSample = sample.map(r => {
+  const parts = String(r[0] || "").split("-");
+  let date = r[0];
+  if (parts.length === 3) date = `${currentYear}-${parts[1]}-${parts[2]}`;
+  return [date, (r[1] || "Pengecekan fungsi alat"), r[2] || "Baik", r[3] || "FANNY"];
+});
+if(!openQRPDFFromHash()){render(normalizedSample);}
+
+// Login sederhana di sisi browser: username admin, password 00000.
+function doLogin(event){
+  event.preventDefault();
+  const user=document.getElementById("loginUser").value.trim();
+  const pass=document.getElementById("loginPass").value;
+  if(user==="admin" && pass==="00000"){
+    sessionStorage.setItem("PM_ADMIN_LOGIN","1");
+    document.getElementById("loginOverlay").style.display="none";
+    document.getElementById("mainToolbar").style.display="flex";
+    document.getElementById("toolbarSummary").style.display="grid";
+    updateToolbarEquipmentStats();
+    document.getElementById("loginError").style.display="none";
+  }else{
+    document.getElementById("loginError").style.display="block";
+  }
+  return false;
+}
+function kembaliKeLembarPM(){
+  // Setiap kembali ke lembar PM, minta login admin lagi.
+  sessionStorage.removeItem("PM_ADMIN_LOGIN");
+  document.getElementById("mainToolbar").style.display="none";
+  document.getElementById("toolbarSummary").style.display="none";
+  document.getElementById("loginOverlay").style.display="flex";
+  document.getElementById("loginPass").value="";
+  document.getElementById("loginError").style.display="none";
+  window.scrollTo(0,0);
+}
+function logout(){
+  sessionStorage.removeItem("PM_ADMIN_LOGIN");
+  document.getElementById("mainToolbar").style.display="none";
+  document.getElementById("toolbarSummary").style.display="none";
+  document.getElementById("loginOverlay").style.display="flex";
+  document.getElementById("loginPass").value="";
+}
+function restoreLogin(){
+  if(sessionStorage.getItem("PM_ADMIN_LOGIN")==="1"){
+    document.getElementById("loginOverlay").style.display="none";
+    document.getElementById("mainToolbar").style.display="flex";
+    document.getElementById("toolbarSummary").style.display="grid";
+  }
+}
+
+if(!location.hash.includes("pdfdata=")) restoreLogin();
+
+
+</script>
+</body>
+</html>
